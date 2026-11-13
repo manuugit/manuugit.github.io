@@ -328,6 +328,7 @@ button{font-family:inherit}
 .page{grid-area:1/1; -webkit-backface-visibility:hidden; backface-visibility:hidden}
 .page.top{z-index:2; will-change:transform; transform:rotateY(0deg)}
 .page.under{z-index:1}
+.scene{overflow-anchor:none}
 .page::after{content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background:linear-gradient(90deg, rgba(45,31,40,.18), transparent 60%); opacity:var(--shade,0)}
 .swipe-hint{margin-top:10px; font-family:var(--f-pen); font-size:1.25rem; color:var(--muted); display:flex; align-items:center; gap:8px}
 .swipe-hint::before{content:"👆"; display:inline-block; animation:swipehint 2.4s ease-in-out infinite}
@@ -820,6 +821,14 @@ function renderAcro(){
   $("#acro").innerHTML = a.map((x,i) => `<button type="button" class="ac" id="ac-${i}" data-i="${i}" aria-pressed="${i===acroOn}"><span class="L">${"MANUELA"[i]}</span><span><span class="w">${x[0]}</span><span class="d">${x[1]}</span></span></button>`).join("");
 }
 function fillPage(el, i){ const m = T[lang].mantras; el.querySelector(".mt").textContent = m[i]; el.querySelector(".pno").textContent = (i + 1) + " / " + m.length; }
+function sizeBook(){
+  const b = $("#book"), u = $("#under"); if (!b || !u) return;
+  const mt = u.querySelector(".mt"), pn = u.querySelector(".pno"), keep = [mt.textContent, pn.textContent];
+  b.style.minHeight = ""; u.style.alignSelf = "start";
+  let h = 0; for (const t of T[lang].mantras){ mt.textContent = t; h = Math.max(h, u.offsetHeight); }
+  mt.textContent = keep[0]; pn.textContent = keep[1]; u.style.alignSelf = "";
+  b.style.minHeight = h + "px";
+}
 function renderMantra(){
   const n = T[lang].mantras.length;
   fillPage($("#page"), mantra); fillPage($("#under"), (mantra + 1) % n);
@@ -840,7 +849,7 @@ function setLang(l){
   $("#switch-text").textContent = T[l].switch;
   $$(".opt").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === l)));
   $("#nextq").setAttribute("aria-label", T[l]["o.q"]);
-  renderAcro(); renderMantra(false); renderMap();
+  renderAcro(); renderMantra(false); sizeBook(); renderMap();
   try { localStorage.setItem("mh-lang", l); } catch(e){}
 }
 
@@ -896,6 +905,9 @@ addEventListener("hashchange", () => { const k = scenes.findIndex(s => s.dataset
 $$(".opt").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
 $("#lang-switch").addEventListener("click", () => setLang(lang === "en" ? "es" : "en"));
 $("#acro").addEventListener("click", e => { const b = e.target.closest(".ac"); if (b){ acroOn = +b.dataset.i; renderAcro(); $("#ac-"+acroOn).focus(); } });
+let sbT; addEventListener("resize", () => { clearTimeout(sbT); sbT = setTimeout(sizeBook, 150); });
+try { document.fonts.ready.then(sizeBook); } catch(e){}
+
 /* notebook: a top page that flips away (next) or flips back in (previous) over the page underneath */
 const book = $("#book"), topPg = $("#page"), underPg = $("#under");
 const NM = () => T[lang].mantras.length, wrapM = i => (i + NM()) % NM();
